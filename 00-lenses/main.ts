@@ -1,4 +1,3 @@
-
 interface MyRecord {
     fieldA: string
     fieldB: {
@@ -6,35 +5,80 @@ interface MyRecord {
     }
 }
 
- let rec : MyRecord = {fieldA: "a", fieldB: { fieldB1: "b" }}
+interface MyRecordAlt { }
 
-interface KeyValue<K, V> {
-    Key: K,
-    Value: V,
-}
+let rec    : MyRecord    = {fieldA: "a", fieldB: { fieldB1: "b" }}
+let recAlt : MyRecordAlt = {}
 
-type SingleKeyValue<S, K extends keyof any, KK> =
-    S extends Omit<S, K> & { KK: infer V }
-        ? KeyValue<KK, V>
+type SingleKeyValue<S, K extends keyof S> =
+    S extends Omit<S, K> & { [KK in K]: infer V }
+        ? V
         : never
 
+// -----------------------------------------------------------------------------
 
-// function getKeyInt<S, K extends keyof S, KK extends keyof any>(o :S, key: SingleKeyKey<S, KK>): SingleKeyValue<S, K> {
-//     return o[key]
+const getPropUntyped                                      =
+    <K extends keyof any>  (key: K)                       =>
+    <T extends Pick<T, K>> (o:   T): SingleKeyValue<T, K> =>
+                           o[key]
+
+const getPropTyped    =
+   <T> (key: keyof T) =>
+       getPropUntyped(key)
+
+const getPropTypedHack          =
+   <T>                 ()       =>
+   <K extends keyof T> (key: K) =>
+                       getPropUntyped(key)
+
+const getPropTypedHackier       =
+   <T>                 (tpl: T) =>
+   <K extends keyof T> (key: K) =>
+                       getPropUntyped(key)
+
+// -----------------------------------------------------------------------------
+
+const _fieldB_U = getPropUntyped("fieldB")(rec);
+// TYPE:
+// const _fieldB_U: {
+//     fieldB1: string;
 // }
 
-// type TT = typeof getKey
+const _fieldB_T = getPropTyped<MyRecord>("fieldB")(rec);
+// TYPE:
+// const _fieldB_T: string | {
+//     fieldB1: string;
+// }
 
+const _fieldB_H = getPropTypedHack<MyRecord>()("fieldB")(rec);
+// TYPE:
+// const _fieldB_H: {
+//     fieldB1: string;
+// }
 
+const _fieldB_HI = getPropTypedHackier({} as MyRecord)("fieldB")(rec);
+// TYPE:
+// const _fieldB_HI: {
+//     fieldB1: string;
+// }
 
-type A = SingleKeyValue<MyRecord, keyof MyRecord, "fieldB">
+let a = {} as MyRecord
+
+console.log("output_U:", _fieldB_U);
+console.log("output_T:", _fieldB_T);
+console.log("output_H:", _fieldB_H);
+
+// type A = SingleKeyValue<MyRecord, "fieldB">
 
 // type SingleKeyOf<S, K extends keyof S> = SingleKeyOf_<S, K, K, S[K]>
 
-// T, P, V
+// Given K of type any
+
+// O, K, V
 // such that:
-// - T is any type that has keys of type P
-// - V is of type T[P]
+// - O is any type that has keys
+// - K is a subset of (keysof O)
+// - V is of type O[K]
 
 // export const lensProp = <T>(key: keyof T) => lensPropInt<T, keyof T>(key)
 
